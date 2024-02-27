@@ -16,6 +16,7 @@
         this.memory = new Array(256).fill(0);
         this.programCounter = 0;
         this.fileSystem = new FileSystem();
+        this.ram = new RAM();
       }
 
       execute(instruction, argument) {
@@ -36,6 +37,9 @@
           if (userChoice && userChoice.toUpperCase() === 'Y') {
             this.formatStorage();
           }
+        } else if (instruction === 'MAKEDIR') {
+          const dirName = argument;
+          this.makeDirectory(dirName);
         }
 
         this.programCounter += 2;
@@ -58,6 +62,10 @@
       formatStorage() {
         this.fileSystem.format();
       }
+
+      makeDirectory(dirName) {
+        this.fileSystem.makeDirectory(dirName);
+      }
     }
 
     class OS {
@@ -67,7 +75,8 @@
           'PRINT', 65,
           'ADD', 10, 20,
           'READ_FILE', 'file.txt',
-          'FORMAT'
+          'FORMAT',
+          'MAKEDIR', 'docs'
         ];
       }
 
@@ -101,6 +110,26 @@
 
       format() {
         this.storage.clear();
+      }
+
+      makeDirectory(dirName) {
+        // For simplicity, we'll just use a convention of storing an empty item
+        // with the directory name as the key.
+        this.storage.setItem(dirName, '');
+      }
+    }
+
+    class RAM {
+      constructor() {
+        this.memory = new Array(256).fill(0);
+      }
+
+      read(address) {
+        return this.memory[address];
+      }
+
+      write(address, data) {
+        this.memory[address] = data;
       }
     }
 
@@ -145,6 +174,10 @@
         case 'FORMAT':
           cpu.execute('FORMAT');
           break;
+        case 'MAKEDIR':
+          const dirToMake = args[1];
+          cpu.execute('MAKEDIR', dirToMake);
+          break;
         default:
           // Handle other commands as needed
           break;
@@ -153,11 +186,11 @@
 
     function listFiles() {
       const outputElement = document.getElementById('output');
-      outputElement.textContent += 'Files in Storage:\n';
+      outputElement.textContent += 'Files and Directories in Storage:\n';
 
       for (let i = 0; i < cpu.fileSystem.storage.length; i++) {
-        const fileName = cpu.fileSystem.storage.key(i);
-        outputElement.textContent += `- ${fileName}\n`;
+        const itemName = cpu.fileSystem.storage.key(i);
+        outputElement.textContent += `- ${itemName}\n`;
       }
     }
 
@@ -172,7 +205,8 @@
       outputElement.textContent += '- WRITE_FILE <filename> <content>: Write content to a file\n';
       outputElement.textContent += '- READ_FILE <filename>: Read content from a file\n';
       outputElement.textContent += '- FORMAT: Format the storage (clear all files)\n';
-      outputElement.textContent += '- LIST_FILES: Display the list of files\n';
+      outputElement.textContent += '- MAKEDIR <dirname>: Create a new directory\n';
+      outputElement.textContent += '- LIST_FILES: Display the list of files and directories\n';
       outputElement.textContent += '- CLEAR: Clear the output area\n';
       outputElement.textContent += '- HELP: Display this help message\n';
     }
