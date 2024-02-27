@@ -108,10 +108,9 @@
       constructor(cpu) {
         this.cpu = cpu;
         this.program = [
-          'PRINT', 65,
-          'ADD', 10, 20,
-          'READ_FILE', 'file.txt',
-          'FORMAT',
+          'STATUS',
+          'LIST_FILES',
+          'CD', '/',
           'MAKEDIR', 'docs',
           'STATUS',
           'LIST_FILES',
@@ -189,6 +188,9 @@
       }
 
       changeDirectory(targetDir, currentDirectory) {
+        if (targetDir === '/') {
+          return '/';
+        }
         const fullPath = this.getFullPath(targetDir, currentDirectory);
         if (this.storage.getItem(fullPath) === 'DIRECTORY') {
           return fullPath;
