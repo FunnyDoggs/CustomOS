@@ -121,6 +121,10 @@
         case 'HELP':
           showHelp();
           break;
+        case 'READ_FILE':
+          const fileToRead = args[1];
+          cpu.execute('READ_FILE', fileToRead);
+          break;
         default:
           // Handle other commands as needed
           break;
@@ -146,6 +150,7 @@
       const outputElement = document.getElementById('output');
       outputElement.textContent += 'Available Commands:\n';
       outputElement.textContent += '- WRITE_FILE <filename> <content>: Write content to a file\n';
+      outputElement.textContent += '- READ_FILE <filename>: Read content from a file\n';
       outputElement.textContent += '- LIST_FILES: Display the list of files\n';
       outputElement.textContent += '- CLEAR: Clear the output area\n';
       outputElement.textContent += '- HELP: Display this help message\n';
