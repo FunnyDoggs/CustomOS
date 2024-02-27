@@ -56,6 +56,9 @@
           case 'EDIT_FILE':
             this.editFile(argument);
             break;
+          case 'EMPTY_CPU_TO_RAM':
+            this.emptyCpuToRam();
+            break;
           // Add more cases as needed
           default:
             // Handle unknown instructions
@@ -142,15 +145,40 @@
         });
       }
 
+      emptyCpuToRam() {
+        this.ram.emptyRAM();
+        this.ram.addToRAM(this.registers.concat(this.memory));
+        this.registers.fill(0);
+        this.memory.fill(0);
+      }
+
       // (Other methods remain unchanged)
 
     }
 
     class OS {
-      // (Your existing OS class code)
+      constructor(cpu) {
+        this.cpu = cpu;
+      }
+
+      loadProgram(program) {
+        this.cpu.loadProgram(program);
+      }
+
+      run() {
+        while (this.cpu.programCounter < this.cpu.memory.length) {
+          const instruction = this.cpu.memory[this.cpu.programCounter];
+          const argument = this.cpu.memory[this.cpu.programCounter + 1];
+          this.cpu.execute(instruction, argument);
+        }
+      }
     }
 
     class FileSystem {
+      constructor() {
+        this.storage = localStorage;
+      }
+
       // (Your existing FileSystem class code)
 
       deleteFile(fileName, currentDirectory) {
@@ -213,9 +241,8 @@
 
       switch (commandName) {
         // (Other command cases remain unchanged)
-        case 'DELETE_FILE':
-          const fileToDelete = args[1];
-          cpu.execute('DELETE_FILE', fileToDelete);
+        case 'EMPTY_CPU_TO_RAM':
+          cpu.execute('EMPTY_CPU_TO_RAM');
           break;
         // (Other command cases remain unchanged)
       }
@@ -237,6 +264,7 @@
       outputElement.textContent += '- LIST_FILES: Display the list of files and directories\n';
       outputElement.textContent += '- CD <dirname>: Change the current directory\n';
       outputElement.textContent += '- EDIT_FILE <filename>: Edit the content of a file\n';
+      outputElement.textContent += '- EMPTY_CPU_TO_RAM: Move CPU contents to RAM on overflow\n';
       outputElement.textContent += '- STATUS: Display system status\n';
       outputElement.textContent += '- CLEAR: Clear the output area\n';
       outputElement.textContent += '- HELP: Display this help message\n';
