@@ -7,18 +7,18 @@
 </head>
 <body>
   <pre id="output"></pre>
+  <input type="text" id="cliInput" placeholder="Type a command">
 
   <script>
-    // Simple CPU emulation
     class CPU {
       constructor() {
         this.registers = new Array(8).fill(0);
         this.memory = new Array(256).fill(0);
         this.programCounter = 0;
+        this.fileSystem = new FileSystem();
       }
 
       execute(instruction) {
-        // Simulate a simple instruction execution
         if (instruction === 'PRINT') {
           const data = this.memory[this.programCounter + 1];
           this.print(data);
@@ -26,9 +26,11 @@
           const operand1 = this.memory[this.programCounter + 1];
           const operand2 = this.memory[this.programCounter + 2];
           this.add(operand1, operand2);
+        } else if (instruction === 'READ_FILE') {
+          const fileName = this.memory[this.programCounter + 1];
+          this.readFile(fileName);
         }
 
-        // Move to the next instruction
         this.programCounter += 2;
       }
 
@@ -40,13 +42,17 @@
       add(operand1, operand2) {
         this.registers[0] = operand1 + operand2;
       }
+
+      readFile(fileName) {
+        const content = this.fileSystem.readFile(fileName);
+        this.print(content);
+      }
     }
 
-    // Simple Operating System
     class OS {
       constructor(cpu) {
         this.cpu = cpu;
-        this.program = ['PRINT', 65, 'ADD', 10, 20, 'PRINT', 66];
+        this.program = ['PRINT', 65, 'ADD', 10, 20, 'READ_FILE', 'file.txt'];
       }
 
       loadProgram() {
@@ -63,13 +69,51 @@
       }
     }
 
-    // Create CPU and OS instances
+    class FileSystem {
+      constructor() {
+        this.storage = window.localStorage;
+      }
+
+      readFile(fileName) {
+        return this.storage.getItem(fileName) || 'File not found';
+      }
+
+      writeFile(fileName, content) {
+        this.storage.setItem(fileName, content);
+      }
+    }
+
     const cpu = new CPU();
     const os = new OS(cpu);
 
-    // Load and run the program
     os.loadProgram();
     os.run();
+
+    // Example usage of CLI
+    const cliInput = document.getElementById('cliInput');
+    cliInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        const command = cliInput.value.trim();
+        handleCommand(command);
+        cliInput.value = '';
+      }
+    });
+
+    function handleCommand(command) {
+      const args = command.split(' ');
+      const commandName = args[0].toUpperCase();
+
+      switch (commandName) {
+        case 'WRITE_FILE':
+          const fileName = args[1];
+          const content = args.slice(2).join(' ');
+          cpu.fileSystem.writeFile(fileName, content);
+          break;
+        default:
+          // Handle other commands as needed
+          break;
+      }
+    }
   </script>
 </body>
 </html>
