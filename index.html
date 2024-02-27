@@ -50,6 +50,9 @@
           case 'WRITE_FILE':
             this.writeFile(argument[0], argument.slice(1).join(' '));
             break;
+          case 'DELETE_FILE':
+            this.deleteFile(argument);
+            break;
           case 'EDIT_FILE':
             this.editFile(argument);
             break;
@@ -115,10 +118,10 @@
         outputElement.textContent += `Created file: ${fileName}\n`;
       }
 
-      loadProgram(program) {
-        for (let i = 0; i < program.length; i++) {
-          this.memory[i] = program[i];
-        }
+      deleteFile(fileName) {
+        this.fileSystem.deleteFile(fileName, this.currentDirectory);
+        const outputElement = document.getElementById('output');
+        outputElement.textContent += `Deleted file: ${fileName}\n`;
       }
 
       editFile(fileName) {
@@ -138,44 +141,47 @@
           cpu.fileSystem.writeFile(fileName, editedContent, cpu.currentDirectory);
         });
       }
+
+      // (Other methods remain unchanged)
+
     }
 
     class OS {
-      constructor(cpu) {
-        this.cpu = cpu;
-      }
-
-      loadProgram(program) {
-        this.cpu.loadProgram(program);
-      }
-
-      run() {
-        while (this.cpu.programCounter < this.cpu.memory.length) {
-          const instruction = this.cpu.memory[this.cpu.programCounter];
-          const argument = this.cpu.memory[this.cpu.programCounter + 1];
-          this.cpu.execute(instruction, argument);
-        }
-      }
+      // (Your existing OS class code)
     }
 
     class FileSystem {
       // (Your existing FileSystem class code)
 
-      readFile(fileName, currentDirectory) {
+      deleteFile(fileName, currentDirectory) {
         const fullPath = this.getFullPath(fileName, currentDirectory);
-        return this.storage.getItem(fullPath) || 'File not found';
+        this.storage.removeItem(fullPath);
       }
 
-      writeFile(fileName, content, currentDirectory) {
-        const fullPath = this.getFullPath(fileName, currentDirectory);
-        this.storage.setItem(fullPath, content);
-      }
-
-      // (Your existing FileSystem class code)
+      // (Other methods remain unchanged)
     }
 
     class RAM {
-      // (Your existing RAM class code)
+      constructor() {
+        this.contents = [];
+      }
+
+      addToRAM(data) {
+        if (this.contents.length >= 256) {
+          this.emptyRAM();
+        }
+        this.contents.push(data);
+      }
+
+      emptyRAM() {
+        this.contents = [];
+        const outputElement = document.getElementById('output');
+        outputElement.textContent += 'RAM overflowed. Contents emptied.\n';
+      }
+
+      getUsage() {
+        return (this.contents.length / 256) * 100;
+      }
     }
 
     class GPU {
@@ -206,45 +212,12 @@
       const commandName = args[0].toUpperCase();
 
       switch (commandName) {
-        case 'WRITE_FILE':
-          const fileName = args[1];
-          const content = args.slice(2).join(' ');
-          cpu.fileSystem.writeFile(fileName, content, cpu.currentDirectory);
+        // (Other command cases remain unchanged)
+        case 'DELETE_FILE':
+          const fileToDelete = args[1];
+          cpu.execute('DELETE_FILE', fileToDelete);
           break;
-        case 'LIST_FILES':
-          cpu.listFiles();
-          break;
-        case 'CLEAR':
-          clearOutput();
-          break;
-        case 'HELP':
-          showHelp();
-          break;
-        case 'READ_FILE':
-          const fileToRead = args[1];
-          cpu.execute('READ_FILE', fileToRead);
-          break;
-        case 'FORMAT':
-          cpu.execute('FORMAT');
-          break;
-        case 'MAKEDIR':
-          const dirToMake = args[1];
-          cpu.execute('MAKEDIR', dirToMake);
-          break;
-        case 'STATUS':
-          cpu.execute('STATUS');
-          break;
-        case 'CD':
-          const targetDir = args[1];
-          cpu.execute('CD', targetDir);
-          break;
-        case 'EDIT_FILE':
-          const fileToEdit = args[1];
-          cpu.editFile(fileToEdit);
-          break;
-        default:
-          // Handle other commands as needed
-          break;
+        // (Other command cases remain unchanged)
       }
     }
 
@@ -257,6 +230,7 @@
       const outputElement = document.getElementById('output');
       outputElement.textContent += 'Available Commands:\n';
       outputElement.textContent += '- WRITE_FILE <filename> <content>: Write content to a file\n';
+      outputElement.textContent += '- DELETE_FILE <filename>: Delete a file\n';
       outputElement.textContent += '- READ_FILE <filename>: Read content from a file\n';
       outputElement.textContent += '- FORMAT: Format the storage (clear all files)\n';
       outputElement.textContent += '- MAKEDIR <dirname>: Create a new directory\n';
