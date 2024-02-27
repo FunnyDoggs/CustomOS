@@ -52,7 +52,11 @@
     class OS {
       constructor(cpu) {
         this.cpu = cpu;
-        this.program = ['PRINT', 65, 'ADD', 10, 20, 'READ_FILE', 'file.txt'];
+        this.program = [
+          'PRINT', 65,
+          'ADD', 10, 20,
+          'READ_FILE', 'file.txt'
+        ];
       }
 
       loadProgram() {
@@ -89,7 +93,6 @@
     os.loadProgram();
     os.run();
 
-    // Example usage of CLI
     const cliInput = document.getElementById('cliInput');
     cliInput.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') {
@@ -109,10 +112,31 @@
           const content = args.slice(2).join(' ');
           cpu.fileSystem.writeFile(fileName, content);
           break;
+        case 'LIST_FILES':
+          listFiles();
+          break;
+        case 'CLEAR':
+          clearOutput();
+          break;
         default:
           // Handle other commands as needed
           break;
       }
+    }
+
+    function listFiles() {
+      const outputElement = document.getElementById('output');
+      outputElement.textContent += 'Files in Storage:\n';
+
+      for (let i = 0; i < cpu.fileSystem.storage.length; i++) {
+        const fileName = cpu.fileSystem.storage.key(i);
+        outputElement.textContent += `- ${fileName}\n`;
+      }
+    }
+
+    function clearOutput() {
+      const outputElement = document.getElementById('output');
+      outputElement.textContent = '';
     }
   </script>
 </body>
