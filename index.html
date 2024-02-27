@@ -118,6 +118,9 @@
         case 'CLEAR':
           clearOutput();
           break;
+        case 'HELP':
+          showHelp();
+          break;
         default:
           // Handle other commands as needed
           break;
@@ -137,6 +140,15 @@
     function clearOutput() {
       const outputElement = document.getElementById('output');
       outputElement.textContent = '';
+    }
+
+    function showHelp() {
+      const outputElement = document.getElementById('output');
+      outputElement.textContent += 'Available Commands:\n';
+      outputElement.textContent += '- WRITE_FILE <filename> <content>: Write content to a file\n';
+      outputElement.textContent += '- LIST_FILES: Display the list of files\n';
+      outputElement.textContent += '- CLEAR: Clear the output area\n';
+      outputElement.textContent += '- HELP: Display this help message\n';
     }
   </script>
 </body>
