@@ -8,7 +8,7 @@
 <body>
   <pre id="output"></pre>
   <input type="text" id="cliInput" placeholder="Type a command">
-  <button onclick="executeCommand()">Execute</button>
+
   <script>
     class CPU {
       constructor() {
@@ -46,6 +46,9 @@
             break;
           case 'CHANGE_DIR':
             this.changeDirectory(argument);
+            break;
+          case 'WRITE_FILE':
+            this.writeFile(argument[0], argument.slice(1).join(' '));
             break;
           case 'EDIT_FILE':
             this.editFile(argument);
@@ -106,6 +109,12 @@
         }
       }
 
+      writeFile(fileName, content) {
+        this.fileSystem.writeFile(fileName, content, this.currentDirectory);
+        const outputElement = document.getElementById('output');
+        outputElement.textContent += `Created file: ${fileName}\n`;
+      }
+
       loadProgram(program) {
         for (let i = 0; i < program.length; i++) {
           this.memory[i] = program[i];
@@ -150,7 +159,7 @@
     }
 
     class FileSystem {
-      // (unchanged code)
+      // (Your existing FileSystem class code)
 
       readFile(fileName, currentDirectory) {
         const fullPath = this.getFullPath(fileName, currentDirectory);
@@ -162,26 +171,15 @@
         this.storage.setItem(fullPath, content);
       }
 
-      // (unchanged code)
-
-      changeDirectory(targetDir, currentDirectory) {
-        if (targetDir === '/') {
-          return '/';
-        }
-        const fullPath = this.getFullPath(targetDir, currentDirectory);
-        if (this.storage.getItem(fullPath) === 'DIRECTORY') {
-          return fullPath;
-        }
-        return null;
-      }
+      // (Your existing FileSystem class code)
     }
 
     class RAM {
-      // (unchanged code)
+      // (Your existing RAM class code)
     }
 
     class GPU {
-      // (unchanged code)
+      // (Your existing GPU class code)
     }
 
     const cpu = new CPU();
