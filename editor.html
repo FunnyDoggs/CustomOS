@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OS Emulator Editor</title>
+</head>
+<body>
+  <textarea id="editor" placeholder="Edit your program here..."></textarea>
+  <button onclick="saveAndClose()">Save and Close</button>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      const editorContent = window.opener.document.getElementById('output').textContent;
+      document.getElementById('editor').value = editorContent;
+    });
+
+    function saveAndClose() {
+      const editorContent = document.getElementById('editor').value;
+      window.opener.postMessage(editorContent, '*');
+      window.close();
+    }
+  </script>
+</body>
+</html>
