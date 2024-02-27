@@ -18,7 +18,7 @@
         this.fileSystem = new FileSystem();
       }
 
-      execute(instruction) {
+      execute(instruction, argument) {
         if (instruction === 'PRINT') {
           const data = this.memory[this.programCounter + 1];
           this.print(data);
@@ -27,8 +27,15 @@
           const operand2 = this.memory[this.programCounter + 2];
           this.add(operand1, operand2);
         } else if (instruction === 'READ_FILE') {
-          const fileName = this.memory[this.programCounter + 1];
+          const fileName = argument;
           this.readFile(fileName);
+        } else if (instruction === 'FORMAT') {
+          const confirmMessage = 'Are you sure you want to format the storage? (Y/N)';
+          const userChoice = prompt(confirmMessage);
+
+          if (userChoice && userChoice.toUpperCase() === 'Y') {
+            this.formatStorage();
+          }
         }
 
         this.programCounter += 2;
@@ -47,6 +54,10 @@
         const content = this.fileSystem.readFile(fileName);
         this.print(content);
       }
+
+      formatStorage() {
+        this.fileSystem.format();
+      }
     }
 
     class OS {
@@ -55,7 +66,8 @@
         this.program = [
           'PRINT', 65,
           'ADD', 10, 20,
-          'READ_FILE', 'file.txt'
+          'READ_FILE', 'file.txt',
+          'FORMAT'
         ];
       }
 
@@ -68,7 +80,8 @@
       run() {
         while (this.cpu.programCounter < this.cpu.memory.length) {
           const instruction = this.cpu.memory[this.cpu.programCounter];
-          this.cpu.execute(instruction);
+          const argument = this.cpu.memory[this.cpu.programCounter + 1];
+          this.cpu.execute(instruction, argument);
         }
       }
     }
@@ -84,6 +97,10 @@
 
       writeFile(fileName, content) {
         this.storage.setItem(fileName, content);
+      }
+
+      format() {
+        this.storage.clear();
       }
     }
 
@@ -125,6 +142,9 @@
           const fileToRead = args[1];
           cpu.execute('READ_FILE', fileToRead);
           break;
+        case 'FORMAT':
+          cpu.execute('FORMAT');
+          break;
         default:
           // Handle other commands as needed
           break;
@@ -151,6 +171,7 @@
       outputElement.textContent += 'Available Commands:\n';
       outputElement.textContent += '- WRITE_FILE <filename> <content>: Write content to a file\n';
       outputElement.textContent += '- READ_FILE <filename>: Read content from a file\n';
+      outputElement.textContent += '- FORMAT: Format the storage (clear all files)\n';
       outputElement.textContent += '- LIST_FILES: Display the list of files\n';
       outputElement.textContent += '- CLEAR: Clear the output area\n';
       outputElement.textContent += '- HELP: Display this help message\n';
