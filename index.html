@@ -6,7 +6,7 @@
   <title>OS Emulator</title>
 </head>
 <body>
-  <button onclick="openEditor()">Open Editor</button>
+  <button onclick="executeCommand()">Execute</button>
   <pre id="output"></pre>
   <input type="text" id="cliInput" placeholder="Type a command">
 
@@ -189,14 +189,21 @@
     const os = new OS(cpu);
 
     const cliInput = document.getElementById('cliInput');
-  cliInput.addEventListener('keyup', function (event) {
-    if (event.key === 'Enter') {
+    cliInput.addEventListener('input', function (event) {
+      const trimmedValue = cliInput.value.trim();
+      if (event.inputType === 'insertLineBreak' || event.inputType === 'insertParagraph') {
+        cliInput.value = ''; // Clear the input if Enter key is pressed
+        handleCommand(trimmedValue);
+        event.preventDefault();
+      }
+    });
+
+    function executeCommand() {
       const command = cliInput.value.trim();
       handleCommand(command);
       cliInput.value = '';
-      event.preventDefault();
     }
-  });
+
     function handleCommand(command) {
       const args = command.split(' ');
       const commandName = args[0].toUpperCase();
@@ -262,19 +269,6 @@
       outputElement.textContent += '- STATUS: Display system status\n';
       outputElement.textContent += '- CLEAR: Clear the output area\n';
       outputElement.textContent += '- HELP: Display this help message\n';
-    }
-
-    function openEditor() {
-      const editorWindow = window.open('editor.html', 'Editor', 'width=600,height=400');
-      editorWindow.addEventListener('message', function(event) {
-        const editorContent = event.data;
-        document.getElementById('output').textContent += 'Loaded program from editor:\n';
-        document.getElementById('output').textContent += editorContent + '\n';
-
-        const program = editorContent.split('\n').filter(line => line.trim() !== '');
-        os.loadProgram(program);
-        os.run();
-      });
     }
   </script>
 </body>
