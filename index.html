@@ -18,6 +18,7 @@
         this.fileSystem = new FileSystem();
         this.ram = new RAM();
         this.gpu = new GPU();
+        this.currentDirectory = '/';
       }
 
       execute(instruction, argument) {
@@ -43,6 +44,11 @@
           this.makeDirectory(dirName);
         } else if (instruction === 'STATUS') {
           this.displayStatus();
+        } else if (instruction === 'LIST_FILES') {
+          this.listFiles();
+        } else if (instruction === 'CD') {
+          const targetDir = argument;
+          this.changeDirectory(targetDir);
         }
 
         this.programCounter += 2;
@@ -58,7 +64,7 @@
       }
 
       readFile(fileName) {
-        const content = this.fileSystem.readFile(fileName);
+        const content = this.fileSystem.readFile(fileName, this.currentDirectory);
         this.print(content);
       }
 
@@ -67,19 +73,33 @@
       }
 
       makeDirectory(dirName) {
-        this.fileSystem.makeDirectory(dirName);
+        this.fileSystem.makeDirectory(dirName, this.currentDirectory);
       }
 
       displayStatus() {
         const outputElement = document.getElementById('output');
         outputElement.textContent += 'System Status:\n';
+        outputElement.textContent += `Current Directory: ${this.currentDirectory}\n`;
         outputElement.textContent += `CPU Registers: ${this.registers.join(', ')}\n`;
         outputElement.textContent += `RAM Usage: ${this.ram.getUsage()}%\n`;
         outputElement.textContent += `GPU Status: ${this.gpu.getStatus()}\n`;
         outputElement.textContent += 'File System:\n';
-        for (let i = 0; i < this.fileSystem.storage.length; i++) {
-          const itemName = this.fileSystem.storage.key(i);
-          outputElement.textContent += `- ${itemName}\n`;
+        this.fileSystem.displayFileSystem();
+      }
+
+      listFiles() {
+        const outputElement = document.getElementById('output');
+        outputElement.textContent += 'Files and Directories in Current Directory:\n';
+        this.fileSystem.displayFilesInDirectory(this.currentDirectory);
+      }
+
+      changeDirectory(targetDir) {
+        const newDir = this.fileSystem.changeDirectory(targetDir, this.currentDirectory);
+        if (newDir !== null) {
+          this.currentDirectory = newDir;
+        } else {
+          const outputElement = document.getElementById('output');
+          outputElement.textContent += `Directory '${targetDir}' not found.\n`;
         }
       }
     }
@@ -93,7 +113,13 @@
           'READ_FILE', 'file.txt',
           'FORMAT',
           'MAKEDIR', 'docs',
-          'STATUS'
+          'STATUS',
+          'LIST_FILES',
+          'CD', 'docs',
+          'MAKEDIR', 'subdocs',
+          'LIST_FILES',
+          'CD', '/',
+          'LIST_FILES'
         ];
       }
 
@@ -117,22 +143,57 @@
         this.storage = window.localStorage;
       }
 
-      readFile(fileName) {
-        return this.storage.getItem(fileName) || 'File not found';
+      readFile(fileName, currentDirectory) {
+        const fullPath = this.getFullPath(fileName, currentDirectory);
+        return this.storage.getItem(fullPath) || 'File not found';
       }
 
-      writeFile(fileName, content) {
-        this.storage.setItem(fileName, content);
+      writeFile(fileName, content, currentDirectory) {
+        const fullPath = this.getFullPath(fileName, currentDirectory);
+        this.storage.setItem(fullPath, content);
       }
 
       format() {
         this.storage.clear();
       }
 
-      makeDirectory(dirName) {
-        // For simplicity, we'll just use a convention of storing an empty item
-        // with the directory name as the key.
-        this.storage.setItem(dirName, '');
+      makeDirectory(dirName, currentDirectory) {
+        const fullPath = this.getFullPath(dirName, currentDirectory);
+        this.storage.setItem(fullPath, 'DIRECTORY');
+      }
+
+      getFullPath(name, currentDirectory) {
+        return currentDirectory === '/' ? `/${name}` : `${currentDirectory}/${name}`;
+      }
+
+      displayFilesInDirectory(currentDirectory) {
+        for (let i = 0; i < this.storage.length; i++) {
+          const itemName = this.storage.key(i);
+          const isDirectory = this.storage.getItem(itemName) === 'DIRECTORY';
+          if (itemName.startsWith(currentDirectory) && itemName !== currentDirectory) {
+            const displayItem = isDirectory ? `[${itemName}]` : itemName;
+            const outputElement = document.getElementById('output');
+            outputElement.textContent += `- ${displayItem}\n`;
+          }
+        }
+      }
+
+      displayFileSystem() {
+        for (let i = 0; i < this.storage.length; i++) {
+          const itemName = this.storage.key(i);
+          const isDirectory = this.storage.getItem(itemName) === 'DIRECTORY';
+          const displayItem = isDirectory ? `[${itemName}]` : itemName;
+          const outputElement = document.getElementById('output');
+          outputElement.textContent += `- ${displayItem}\n`;
+        }
+      }
+
+      changeDirectory(targetDir, currentDirectory) {
+        const fullPath = this.getFullPath(targetDir, currentDirectory);
+        if (this.storage.getItem(fullPath) === 'DIRECTORY') {
+          return fullPath;
+        }
+        return null;
       }
     }
 
@@ -194,10 +255,10 @@
         case 'WRITE_FILE':
           const fileName = args[1];
           const content = args.slice(2).join(' ');
-          cpu.fileSystem.writeFile(fileName, content);
+          cpu.fileSystem.writeFile(fileName, content, cpu.currentDirectory);
           break;
         case 'LIST_FILES':
-          listFiles();
+          cpu.listFiles();
           break;
         case 'CLEAR':
           clearOutput();
@@ -219,19 +280,13 @@
         case 'STATUS':
           cpu.execute('STATUS');
           break;
+        case 'CD':
+          const targetDir = args[1];
+          cpu.execute('CD', targetDir);
+          break;
         default:
           // Handle other commands as needed
           break;
-      }
-    }
-
-    function listFiles() {
-      const outputElement = document.getElementById('output');
-      outputElement.textContent += 'Files and Directories in Storage:\n';
-
-      for (let i = 0; i < cpu.fileSystem.storage.length; i++) {
-        const itemName = cpu.fileSystem.storage.key(i);
-        outputElement.textContent += `- ${itemName}\n`;
       }
     }
 
@@ -247,8 +302,9 @@
       outputElement.textContent += '- READ_FILE <filename>: Read content from a file\n';
       outputElement.textContent += '- FORMAT: Format the storage (clear all files)\n';
       outputElement.textContent += '- MAKEDIR <dirname>: Create a new directory\n';
-      outputElement.textContent += '- STATUS: Display system status\n';
       outputElement.textContent += '- LIST_FILES: Display the list of files and directories\n';
+      outputElement.textContent += '- CD <dirname>: Change the current directory\n';
+      outputElement.textContent += '- STATUS: Display system status\n';
       outputElement.textContent += '- CLEAR: Clear the output area\n';
       outputElement.textContent += '- HELP: Display this help message\n';
     }
