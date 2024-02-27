@@ -8,6 +8,7 @@
 <body>
   <pre id="output"></pre>
   <input type="text" id="cliInput" placeholder="Type a command">
+  <button onclick="executeCommand()">Execute</button>
 
   <script>
     class CPU {
@@ -154,15 +155,14 @@
 
       // (Other methods remain unchanged)
 
+      loadProgram(program) {
+        // Implement loading program into memory
+      }
     }
 
     class OS {
       constructor(cpu) {
         this.cpu = cpu;
-      }
-
-      loadProgram(program) {
-        this.cpu.loadProgram(program);
       }
 
       run() {
@@ -240,11 +240,20 @@
       const commandName = args[0].toUpperCase();
 
       switch (commandName) {
-        // (Other command cases remain unchanged)
-        case 'EMPTY_CPU_TO_RAM':
-          cpu.execute('EMPTY_CPU_TO_RAM');
+        case 'WRITE_FILE':
+        case 'DELETE_FILE':
+        case 'READ_FILE':
+        case 'FORMAT':
+        case 'MAKEDIR':
+        case 'LIST_FILES':
+        case 'CD':
+        case 'EDIT_FILE':
+          // These commands have been handled separately
           break;
-        // (Other command cases remain unchanged)
+        default:
+          const outputElement = document.getElementById('output');
+          outputElement.textContent += `Unknown command: ${command}\n`;
+          break;
       }
     }
 
