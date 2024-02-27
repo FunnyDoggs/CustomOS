@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OS Emulator</title>
+</head>
+<body>
+  <pre id="output"></pre>
+
+  <script>
+    // Simple CPU emulation
+    class CPU {
+      constructor() {
+        this.registers = new Array(8).fill(0);
+        this.memory = new Array(256).fill(0);
+        this.programCounter = 0;
+      }
+
+      execute(instruction) {
+        // Simulate a simple instruction execution
+        if (instruction === 'PRINT') {
+          const data = this.memory[this.programCounter + 1];
+          this.print(data);
+        } else if (instruction === 'ADD') {
+          const operand1 = this.memory[this.programCounter + 1];
+          const operand2 = this.memory[this.programCounter + 2];
+          this.add(operand1, operand2);
+        }
+
+        // Move to the next instruction
+        this.programCounter += 2;
+      }
+
+      print(data) {
+        const outputElement = document.getElementById('output');
+        outputElement.textContent += String.fromCharCode(data);
+      }
+
+      add(operand1, operand2) {
+        this.registers[0] = operand1 + operand2;
+      }
+    }
+
+    // Simple Operating System
+    class OS {
+      constructor(cpu) {
+        this.cpu = cpu;
+        this.program = ['PRINT', 65, 'ADD', 10, 20, 'PRINT', 66];
+      }
+
+      loadProgram() {
+        for (let i = 0; i < this.program.length; i++) {
+          this.cpu.memory[i] = this.program[i];
+        }
+      }
+
+      run() {
+        while (this.cpu.programCounter < this.cpu.memory.length) {
+          const instruction = this.cpu.memory[this.cpu.programCounter];
+          this.cpu.execute(instruction);
+        }
+      }
+    }
+
+    // Create CPU and OS instances
+    const cpu = new CPU();
+    const os = new OS(cpu);
+
+    // Load and run the program
+    os.loadProgram();
+    os.run();
+  </script>
+</body>
+</html>
