@@ -242,22 +242,7 @@
       const args = command.split(' ');
       const commandName = args[0].toUpperCase();
 
-      switch (commandName) {
-        case 'WRITE_FILE':
-        case 'DELETE_FILE':
-        case 'READ_FILE':
-        case 'FORMAT':
-        case 'MAKEDIR':
-        case 'LIST_FILES':
-        case 'CD':
-        case 'EDIT_FILE':
-          // These commands have been handled separately
-          break;
-        default:
-          const outputElement = document.getElementById('output');
-          outputElement.textContent += `Unknown command: ${command}\n`;
-          break;
-      }
+      cpu.execute(command, args);
     }
 
     function clearOutput() {
