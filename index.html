@@ -6,11 +6,7 @@
   <title>OS Emulator</title>
 </head>
 <body>
-  <div>
-    <textarea id="editor" placeholder="Edit your program here..."></textarea>
-    <button onclick="loadProgram()">Load Program</button>
-    <button onclick="saveProgram()">Save Program</button>
-  </div>
+  <button onclick="openEditor()">Open Editor</button>
   <pre id="output"></pre>
   <input type="text" id="cliInput" placeholder="Type a command">
 
@@ -27,7 +23,39 @@
       }
 
       execute(instruction, argument) {
-        // (unchanged code)
+        switch (instruction) {
+          case 'PRINT':
+            this.print(argument);
+            break;
+          case 'ADD':
+            this.add(argument[0], argument[1]);
+            break;
+          case 'READ_FILE':
+            this.readFile(argument);
+            break;
+          case 'FORMAT':
+            this.formatStorage();
+            break;
+          case 'MAKEDIR':
+            this.makeDirectory(argument);
+            break;
+          case 'STATUS':
+            this.displayStatus();
+            break;
+          case 'LIST_FILES':
+            this.listFiles();
+            break;
+          case 'CHANGE_DIR':
+            this.changeDirectory(argument);
+            break;
+          case 'EDIT_FILE':
+            this.editFile(argument);
+            break;
+          // Add more cases as needed
+          default:
+            // Handle unknown instructions
+            break;
+        }
       }
 
       print(data) {
@@ -83,6 +111,24 @@
         for (let i = 0; i < program.length; i++) {
           this.memory[i] = program[i];
         }
+      }
+
+      editFile(fileName) {
+        const content = this.fileSystem.readFile(fileName, this.currentDirectory);
+        const editorWindow = window.open('editor.html', 'Editor', 'width=600,height=400');
+        
+        editorWindow.addEventListener('DOMContentLoaded', function() {
+          editorWindow.document.getElementById('editor').value = content;
+        });
+
+        editorWindow.addEventListener('message', function(event) {
+          const editedContent = event.data;
+          document.getElementById('output').textContent += `Edited file '${fileName}':\n`;
+          document.getElementById('output').textContent += editedContent + '\n';
+
+          // Update the content of the file in the file system
+          cpu.fileSystem.writeFile(fileName, editedContent, cpu.currentDirectory);
+        });
       }
     }
 
@@ -188,6 +234,10 @@
           const targetDir = args[1];
           cpu.execute('CD', targetDir);
           break;
+        case 'EDIT_FILE':
+          const fileToEdit = args[1];
+          cpu.editFile(fileToEdit);
+          break;
         default:
           // Handle other commands as needed
           break;
@@ -208,24 +258,23 @@
       outputElement.textContent += '- MAKEDIR <dirname>: Create a new directory\n';
       outputElement.textContent += '- LIST_FILES: Display the list of files and directories\n';
       outputElement.textContent += '- CD <dirname>: Change the current directory\n';
+      outputElement.textContent += '- EDIT_FILE <filename>: Edit the content of a file\n';
       outputElement.textContent += '- STATUS: Display system status\n';
       outputElement.textContent += '- CLEAR: Clear the output area\n';
       outputElement.textContent += '- HELP: Display this help message\n';
     }
 
-    function loadProgram() {
-      const editorContent = document.getElementById('editor').value;
-      const program = editorContent.split('\n').filter(line => line.trim() !== '');
+    function openEditor() {
+      const editorWindow = window.open('editor.html', 'Editor', 'width=600,height=400');
+      editorWindow.addEventListener('message', function(event) {
+        const editorContent = event.data;
+        document.getElementById('output').textContent += 'Loaded program from editor:\n';
+        document.getElementById('output').textContent += editorContent + '\n';
 
-      os.loadProgram(program);
-      os.run();
-    }
-
-    function saveProgram() {
-      const editorContent = document.getElementById('editor').value;
-      const outputElement = document.getElementById('output');
-      outputElement.textContent += 'Saved program:\n';
-      outputElement.textContent += editorContent + '\n';
+        const program = editorContent.split('\n').filter(line => line.trim() !== '');
+        os.loadProgram(program);
+        os.run();
+      });
     }
   </script>
 </body>
