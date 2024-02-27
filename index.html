@@ -194,6 +194,7 @@
         const command = cliInput.value.trim();
         handleCommand(command);
         cliInput.value = '';
+        event.preventDefault();  // Prevent the default Enter key behavior (submitting a form)
       }
     });
 
