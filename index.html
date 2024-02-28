@@ -8,7 +8,6 @@
 <body>
   <pre id="output"></pre>
   <input type="text" id="cliInput" placeholder="Type a command">
-  <button onclick="executeCommand()">Execute</button>
 
   <script>
     class CPU {
@@ -23,51 +22,36 @@
       }
 
       execute(instruction, argument) {
-        switch (instruction) {
-          case 'PRINT':
-            this.print(argument);
-            break;
-          case 'ADD':
-            this.add(argument[0], argument[1]);
-            break;
-          case 'READ_FILE':
-            this.readFile(argument);
-            break;
-          case 'FORMAT':
+        if (instruction === 'PRINT') {
+          const data = this.memory[this.programCounter + 1];
+          this.print(data);
+        } else if (instruction === 'ADD') {
+          const operand1 = this.memory[this.programCounter + 1];
+          const operand2 = this.memory[this.programCounter + 2];
+          this.add(operand1, operand2);
+        } else if (instruction === 'READ_FILE') {
+          const fileName = argument;
+          this.readFile(fileName);
+        } else if (instruction === 'FORMAT') {
+          const confirmMessage = 'Are you sure you want to format the storage? (Y/N)';
+          const userChoice = prompt(confirmMessage);
+
+          if (userChoice && userChoice.toUpperCase() === 'Y') {
             this.formatStorage();
-            break;
-          case 'MAKEDIR':
-            this.makeDirectory(argument);
-            break;
-          case 'STATUS':
-            this.displayStatus();
-            break;
-          case 'LIST_FILES':
-            this.listFiles();
-            break;
-          case 'CHANGE_DIR':
-            this.changeDirectory(argument);
-            break;
-          case 'WRITE_FILE':
-            this.writeFile(argument[0], argument.slice(1).join(' '));
-            break;
-          case 'DELETE_FILE':
-            this.deleteFile(argument);
-            break;
-          case 'EDIT_FILE':
-            this.editFile(argument);
-            break;
-          case 'EMPTY_CPU_TO_RAM':
-            this.emptyCpuToRam();
-            break;
-          case 'HELP':
-            this.showHelp();
-            break;
-          // Add more cases as needed
-          default:
-            // Handle unknown instructions
-            break;
+          }
+        } else if (instruction === 'MAKEDIR') {
+          const dirName = argument;
+          this.makeDirectory(dirName);
+        } else if (instruction === 'STATUS') {
+          this.displayStatus();
+        } else if (instruction === 'LIST_FILES') {
+          this.listFiles();
+        } else if (instruction === 'CD') {
+          const targetDir = argument;
+          this.changeDirectory(targetDir);
         }
+
+        this.programCounter += 2;
       }
 
       print(data) {
@@ -118,54 +102,30 @@
           outputElement.textContent += `Directory '${targetDir}' not found.\n`;
         }
       }
-
-      writeFile(fileName, content) {
-        this.fileSystem.writeFile(fileName, content, this.currentDirectory);
-        const outputElement = document.getElementById('output');
-        outputElement.textContent += `Created file: ${fileName}\n`;
-      }
-
-      deleteFile(fileName) {
-        this.fileSystem.deleteFile(fileName, this.currentDirectory);
-        const outputElement = document.getElementById('output');
-        outputElement.textContent += `Deleted file: ${fileName}\n`;
-      }
-
-      editFile(fileName) {
-        const content = this.fileSystem.readFile(fileName, this.currentDirectory);
-        const editorWindow = window.open('editor.html', 'Editor', 'width=600,height=400');
-        
-        editorWindow.addEventListener('DOMContentLoaded', function() {
-          editorWindow.document.getElementById('editor').value = content;
-        });
-
-        editorWindow.addEventListener('message', function(event) {
-          const editedContent = event.data;
-          document.getElementById('output').textContent += `Edited file '${fileName}':\n`;
-          document.getElementById('output').textContent += editedContent + '\n';
-
-          // Update the content of the file in the file system
-          cpu.fileSystem.writeFile(fileName, editedContent, cpu.currentDirectory);
-        });
-      }
-
-      emptyCpuToRam() {
-        this.ram.emptyRAM();
-        this.ram.addToRAM(this.registers.concat(this.memory));
-        this.registers.fill(0);
-        this.memory.fill(0);
-      }
-
-      // (Other methods remain unchanged)
-
-      loadProgram(program) {
-        // Implement loading program into memory
-      }
     }
 
     class OS {
       constructor(cpu) {
         this.cpu = cpu;
+        this.program = [
+          'STATUS',
+          'LIST_FILES',
+          'CD', '/',
+          'MAKEDIR', 'docs',
+          'STATUS',
+          'LIST_FILES',
+          'CD', 'docs',
+          'MAKEDIR', 'subdocs',
+          'LIST_FILES',
+          'CD', '/',
+          'LIST_FILES'
+        ];
+      }
+
+      loadProgram() {
+        for (let i = 0; i < this.program.length; i++) {
+          this.cpu.memory[i] = this.program[i];
+        }
       }
 
       run() {
@@ -179,70 +139,157 @@
 
     class FileSystem {
       constructor() {
-        this.storage = localStorage;
+        this.storage = window.localStorage;
       }
 
-      // (Your existing FileSystem class code)
-
-      deleteFile(fileName, currentDirectory) {
+      readFile(fileName, currentDirectory) {
         const fullPath = this.getFullPath(fileName, currentDirectory);
-        this.storage.removeItem(fullPath);
+        return this.storage.getItem(fullPath) || 'File not found';
       }
 
-      // (Other methods remain unchanged)
+      writeFile(fileName, content, currentDirectory) {
+        const fullPath = this.getFullPath(fileName, currentDirectory);
+        this.storage.setItem(fullPath, content);
+      }
+
+      format() {
+        this.storage.clear();
+      }
+
+      makeDirectory(dirName, currentDirectory) {
+        const fullPath = this.getFullPath(dirName, currentDirectory);
+        this.storage.setItem(fullPath, 'DIRECTORY');
+      }
+
+      getFullPath(name, currentDirectory) {
+        return currentDirectory === '/' ? `/${name}` : `${currentDirectory}/${name}`;
+      }
+
+      displayFilesInDirectory(currentDirectory) {
+        for (let i = 0; i < this.storage.length; i++) {
+          const itemName = this.storage.key(i);
+          const isDirectory = this.storage.getItem(itemName) === 'DIRECTORY';
+          if (itemName.startsWith(currentDirectory) && itemName !== currentDirectory) {
+            const displayItem = isDirectory ? `[${itemName}]` : itemName;
+            const outputElement = document.getElementById('output');
+            outputElement.textContent += `- ${displayItem}\n`;
+          }
+        }
+      }
+
+      displayFileSystem() {
+        for (let i = 0; i < this.storage.length; i++) {
+          const itemName = this.storage.key(i);
+          const isDirectory = this.storage.getItem(itemName) === 'DIRECTORY';
+          const displayItem = isDirectory ? `[${itemName}]` : itemName;
+          const outputElement = document.getElementById('output');
+          outputElement.textContent += `- ${displayItem}\n`;
+        }
+      }
+
+      changeDirectory(targetDir, currentDirectory) {
+        if (targetDir === '/') {
+          return '/';
+        }
+        const fullPath = this.getFullPath(targetDir, currentDirectory);
+        if (this.storage.getItem(fullPath) === 'DIRECTORY') {
+          return fullPath;
+        }
+        return null;
+      }
     }
 
     class RAM {
       constructor() {
-        this.contents = [];
+        this.memory = new Array(256).fill(0);
+        this.usage = 0;
       }
 
-      addToRAM(data) {
-        if (this.contents.length >= 256) {
-          this.emptyRAM();
-        }
-        this.contents.push(data);
+      read(address) {
+        return this.memory[address];
       }
 
-      emptyRAM() {
-        this.contents = [];
-        const outputElement = document.getElementById('output');
-        outputElement.textContent += 'RAM overflowed. Contents emptied.\n';
+      write(address, data) {
+        this.memory[address] = data;
+        this.updateUsage();
+      }
+
+      updateUsage() {
+        const usedMemory = this.memory.filter(data => data !== 0).length;
+        this.usage = (usedMemory / this.memory.length) * 100;
       }
 
       getUsage() {
-        return (this.contents.length / 256) * 100;
+        return Math.round(this.usage * 100) / 100;
       }
     }
 
     class GPU {
-      // (Your existing GPU class code)
+      constructor() {
+        this.status = 'Idle';
+      }
+
+      getStatus() {
+        return this.status;
+      }
     }
 
     const cpu = new CPU();
     const os = new OS(cpu);
 
+    os.loadProgram();
+    os.run();
+
     const cliInput = document.getElementById('cliInput');
-    cliInput.addEventListener('input', function (event) {
-      const trimmedValue = cliInput.value.trim();
-      if (event.inputType === 'insertLineBreak' || event.inputType === 'insertParagraph') {
-        cliInput.value = ''; // Clear the input if Enter key is pressed
-        handleCommand(trimmedValue);
-        event.preventDefault();
+    cliInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        const command = cliInput.value.trim();
+        handleCommand(command);
+        cliInput.value = '';
       }
     });
-
-    function executeCommand() {
-      const command = cliInput.value.trim();
-      handleCommand(command);
-      cliInput.value = '';
-    }
 
     function handleCommand(command) {
       const args = command.split(' ');
       const commandName = args[0].toUpperCase();
 
-      cpu.execute(command, args);
+      switch (commandName) {
+        case 'WRITE_FILE':
+          const fileName = args[1];
+          const content = args.slice(2).join(' ');
+          cpu.fileSystem.writeFile(fileName, content, cpu.currentDirectory);
+          break;
+        case 'LIST_FILES':
+          cpu.listFiles();
+          break;
+        case 'CLEAR':
+          clearOutput();
+          break;
+        case 'HELP':
+          showHelp();
+          break;
+        case 'READ_FILE':
+          const fileToRead = args[1];
+          cpu.execute('READ_FILE', fileToRead);
+          break;
+        case 'FORMAT':
+          cpu.execute('FORMAT');
+          break;
+        case 'MAKEDIR':
+          const dirToMake = args[1];
+          cpu.execute('MAKEDIR', dirToMake);
+          break;
+        case 'STATUS':
+          cpu.execute('STATUS');
+          break;
+        case 'CD':
+          const targetDir = args[1];
+          cpu.execute('CD', targetDir);
+          break;
+        default:
+          // Handle other commands as needed
+          break;
+      }
     }
 
     function clearOutput() {
@@ -254,14 +301,11 @@
       const outputElement = document.getElementById('output');
       outputElement.textContent += 'Available Commands:\n';
       outputElement.textContent += '- WRITE_FILE <filename> <content>: Write content to a file\n';
-      outputElement.textContent += '- DELETE_FILE <filename>: Delete a file\n';
       outputElement.textContent += '- READ_FILE <filename>: Read content from a file\n';
       outputElement.textContent += '- FORMAT: Format the storage (clear all files)\n';
       outputElement.textContent += '- MAKEDIR <dirname>: Create a new directory\n';
       outputElement.textContent += '- LIST_FILES: Display the list of files and directories\n';
       outputElement.textContent += '- CD <dirname>: Change the current directory\n';
-      outputElement.textContent += '- EDIT_FILE <filename>: Edit the content of a file\n';
-      outputElement.textContent += '- EMPTY_CPU_TO_RAM: Move CPU contents to RAM on overflow\n';
       outputElement.textContent += '- STATUS: Display system status\n';
       outputElement.textContent += '- CLEAR: Clear the output area\n';
       outputElement.textContent += '- HELP: Display this help message\n';
